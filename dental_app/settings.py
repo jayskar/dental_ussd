@@ -37,7 +37,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'dental_ussd',  # Your app name
     'rest_framework',  # If you're using Django REST Framework
     "rest_framework.authtoken",
     "ussd", # USSD engine
