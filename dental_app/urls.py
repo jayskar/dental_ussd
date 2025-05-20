@@ -19,5 +19,4 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('dental_ussd/', include('dental_ussd.urls', namespace='dental_ussd')),
 ]
