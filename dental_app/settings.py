@@ -9,7 +9,7 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'dental_ussd',  # Your app name
     'rest_framework',  # If you're using Django REST Framework
     "rest_framework.authtoken",
+    "ussd", # USSD engine
 ]
 
 MIDDLEWARE = [
@@ -151,3 +152,4 @@ CACHES = {
         }
     }
 }
+DEFAULT_USSD_SCREEN_JOURNEY = os.path.join(BASE_DIR, 'journeys', 'sample_menu.yml')

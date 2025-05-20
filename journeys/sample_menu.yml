@@ -1,0 +1,7 @@
+# Initial Screen
+initial_screen: first_screen
+
+first_screen:
+  type: quit_screen
+  text: |
+    Welcome to the Dental Appointment Service.

@@ -30,6 +30,15 @@ class Appointment(models.Model):
 class ClinicAvailability(models.Model):
     clinic_location = models.CharField(max_length=100, null=False)
     appointment_type = models.CharField(max_length=50, null=False)
+    appointment_type = models.CharField(
+        max_length=50,
+        choices=[
+            ('Checkup', 'Checkup'),
+            ('Cleaning', 'Cleaning'),
+            ('Filling', 'Filling'),
+        ],
+        null=False
+    )
     available_slots = models.IntegerField(null=False, validators=[MinValueValidator(0)])
     appointment_date = models.DateTimeField(null=False)
     last_updated = models.DateTimeField(auto_now_add=True)

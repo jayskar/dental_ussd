@@ -1,0 +1,68 @@
+[
+    {
+        "model": "dental_ussd.clinicavailability",
+        "pk": 1,
+        "fields": {
+            "clinic_location": "UPNG Dental Clinic",
+            "appointment_type": "Checkup",
+            "available_slots": 4,
+            "appointment_date": "2025-05-20T09:00:00Z",
+            "last_updated": "2025-05-16T03:32:00Z"
+        }
+    },
+    {
+        "model": "dental_ussd.clinicavailability",
+        "pk": 2,
+        "fields": {
+            "clinic_location": "UPNG Dental",
+            "appointment_type": "Cleaning",
+            "available_slots": 3,
+            "appointment_date": "2025-05-20T14:00:00Z",
+            "last_updated": "2025-05-16T03:32:00Z"
+        }
+    },
+    {
+        "model": "dental_ussd.clinicavailability",
+        "pk": 3,
+        "fields": {
+            "clinic_location": "UPNG Dental",
+            "appointment_type": "Filling",
+            "available_slots": 2,
+            "appointment_date": "2025-05-21T10:30:00Z",
+            "last_updated": "2025-05-16T03:32:00Z"
+        }
+    },
+    {
+        "model": "dental_ussd.clinicavailability",
+        "pk": 4,
+        "fields": {
+            "clinic_location": "POM GEN Dental",
+            "appointment_type": "Checkup",
+            "available_slots": 0,
+            "appointment_date": "2025-05-21T15:00:00Z",
+            "last_updated": "2025-05-16T03:32:00Z"
+        }
+    },
+    {
+        "model": "dental_ussd.clinicavailability",
+        "pk": 5,
+        "fields": {
+            "clinic_location": "POM GEN Dental",
+            "appointment_type": "Cleaning",
+            "available_slots": 0,
+            "appointment_date": "2025-05-22T11:00:00Z",
+            "last_updated": "2025-05-16T03:32:00Z"
+        }
+    },
+    {
+        "model": "dental_ussd.clinicavailability",
+        "pk": 6,
+        "fields": {
+            "clinic_location": "POM GEN Dental",
+            "appointment_type": "Filling",
+            "available_slots": 0,
+            "appointment_date": "2025-05-22T16:00:00Z",
+            "last_updated": "2025-05-16T03:32:00Z"
+        }
+    }
+]
