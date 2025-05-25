@@ -62,7 +62,7 @@
             "appointment_type": "Filling",
             "available_slots": 0,
             "appointment_date": "2025-05-22T16:00:00Z",
-            "last_updated": "2025-05-16T03:32:00Z"
+            "updated_at": "2025-05-16T03:32:00Z"
         }
     }
 ]
