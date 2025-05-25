@@ -4,7 +4,7 @@ initial_screen: authenticate_user
 # Authentication
 authenticate_user:
   type: function_screen
-  function: dental_app.dental_ussd.utils.authenticate_user
+  function: dental_ussd.utils.authenticate_user
   session_key: patient
   next_screen: router_1
 
@@ -24,7 +24,7 @@ enter_name:
 
 register_user:
   type: function_screen
-  function: dental_app.dental_ussd.utils.register_user
+  function: dental_ussd.utils.register_user
   session_key: is_registered
   next_screen: register_confirmation
 
@@ -56,7 +56,7 @@ authenticated_menu:
 # Check Appointment
 check_appointments:
   type: function_screen
-  function: dental_app.dental_ussd.utils.check_appointments
+  function: dental_ussd.utils.check_appointments
   session_key: scheduled_appointments
   next_screen: check_appointment_response
 
@@ -79,7 +79,7 @@ no_appointments:
 
 get_appointments:
   type: function_screen
-  function: dental_app.dental_ussd.utils.get_appointments
+  function: dental_ussd.utils.get_appointments
   session_key: appointment_list
   next_screen: show_appointments
 
@@ -105,7 +105,7 @@ book_appointment:
     Select Appointment Type:
   items:
     text: "{{value}}"
-    value: "{{value}}"
+    value: "{{key}}"
     next_screen: fetch_available_slots
     session_key: appointment_type
     with_dict:
@@ -119,7 +119,7 @@ book_appointment:
 
 fetch_available_slots:
   type: function_screen
-  function: dental_app.dental_ussd.utils.fetch_appointment_slot
+  function: dental_ussd.utils.fetch_appointment_slot
   session_key: appointment_slots
   next_screen: check_book_appointment_response
 
@@ -143,7 +143,7 @@ show_available_slots:
 
 save_slot_key:
   type: function_screen
-  function: dental_app.dental_ussd.utils.save_appointment_slot
+  function: dental_ussd.utils.save_appointment_slot
   session_key: confirm_appointment_slot
   next_screen: book_cleaning_slot_confirm
 
@@ -159,7 +159,7 @@ book_cleaning_slot_confirm:
 
 function_book_appointment:
   type: function_screen
-  function: dental_app.dental_ussd.utils.book_appointment
+  function: dental_ussd.utils.book_appointment
   session_key: book_appointment_response
   next_screen: book_cleaning_slot
 
