@@ -241,6 +241,7 @@ confirm_cancel_appointment:
 cancel_appointment:
   type: function_screen
   function: dental_ussd.utils.cancel_appointment
+  session_key: cancel_response
   next_screen: appointment_cancelled
 
 # Quit/End screens

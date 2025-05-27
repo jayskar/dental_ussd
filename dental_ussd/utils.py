@@ -233,62 +233,6 @@ def check_all_appointments(ussd_request) -> dict | None:
         logger.error(f"Error checking appointments: {str(e)}")
         return None
 
-# def check_all_appointments(ussd_request) -> list | None:
-#     """
-#     Check if a patient has any appointments.
-
-#     Args:
-#         ussd_request: The USSD request containing session data
-
-#     Returns:
-#         QuerySet of appointments or None if no appointments exist
-#     """
-#     phone_number = ussd_request.session.get('phone_number')
-#     if not phone_number:
-#         logger.error("No phone number found in session")
-#         return None
-            
-#     try:
-#         appointments = Appointment.objects.filter(patient__mobile_number=phone_number)
-#         resp = appointments if appointments.exists() else None
-#         logger.info(f"Found {appointments.count() if resp else 0} appointments for {phone_number}")
-#         return resp
-#     except Exception as e:
-#         logger.error(f"Error checking appointments: {str(e)}")
-#         return None
-
-# def get_all_appointments(ussd_request) -> dict | None:
-#     """
-#     Get all appointments for a patient as a dictionary mapping appointment IDs to descriptions.
-
-#     Args:
-#         ussd_request: The USSD request containing session data
-
-#     Returns:
-#         Dictionary of appointment IDs to formatted strings or None if no appointments
-#     """
-#     phone_number = ussd_request.session.get('phone_number')
-#     if not phone_number:
-#         logger.error("No phone number found in session")
-#         return None
-#     try:
-#         appointment_list = Appointment.objects.filter(patient__mobile_number=phone_number)
-#         if not appointment_list.exists():
-#             logger.info(f"No appointments found for {phone_number}")
-#             return None
-
-#         appointments_dict = {}
-#         for appointment in appointment_list:
-#             formatted_date = appointment.appointment_date.strftime('%d/%m/%Y')
-#             appointments_dict[appointment.pk] = f"{appointment.appointment_type} ({appointment.status})"
-
-#         logger.info(f"Retrieved {len(appointments_dict)} appointments for {phone_number}")
-#         return appointments_dict
-
-#     except Exception as e:
-#         logger.error(f"Error retrieving appointments: {str(e)}")
-#         return None
-
 def get_scheduled_appointments(ussd_request):
     _d = {}
     phone_number = ussd_request.session.get('phone_number')
@@ -347,5 +291,8 @@ def fetch_selected_appointment(ussd_request):
 
 def cancel_appointment(ussd_request):
     selected_appointment = ussd_request.session.get('selected_appointment')
-    print('f{selected_appointment}')
+    print(f"{selected_appointment}")
+    appointment = Appointment.objects.get(pk=selected_appointment)
+    appointment.status='cancelled'
+    appointment.save()
     return None
