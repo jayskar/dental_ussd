@@ -32,8 +32,13 @@ class Appointment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f"{self.appointment_type} at {self.clinic_location} on {self.appointment_date}"
+    def __str__(self) -> str:
+        """Return a string representation of the appointment."""
+        return f"""
+           Type: {self.appointment_type}
+           Location: {self.clinic_location}
+           Date: {self.appointment_date.strftime('%Y-%m-%d %I:%M%p')}
+           Status: {self.status}"""
 
 
 class ClinicAvailability(models.Model):
@@ -42,10 +47,10 @@ class ClinicAvailability(models.Model):
         max_length=20,
         default='checkup',
         choices=[
-            ('checkup', 'Checkup'),
-            ('cleaning', 'Cleaning'),
-            ('filling', 'Filling'),
-            ('extraction', 'Extraction')
+            ('Checkup', 'Checkup'),
+            ('Cleaning', 'Cleaning'),
+            ('Filling', 'Filling'),
+            ('Extraction', 'Extraction')
         ]
     )
     available_slots = models.IntegerField(null=False, validators=[MinValueValidator(0)])

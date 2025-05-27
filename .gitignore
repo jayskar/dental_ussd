@@ -16,3 +16,4 @@ __pycache__/
 *.env
 .envrc
 *.envrc
+session_data/

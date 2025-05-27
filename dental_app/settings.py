@@ -152,4 +152,20 @@ CACHES = {
         }
     }
 }
-DEFAULT_USSD_SCREEN_JOURNEY = os.path.join(BASE_DIR, 'journeys', 'sample_menu.yml')
+DEFAULT_USSD_SCREEN_JOURNEY = os.path.join(BASE_DIR, 'journeys', 'dental_appointment_menu.yml')
+
+# Added for Vue Simulatior
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8081", # Change port number if your vue app (phone simulator) is running on a different port
+    "http://127.0.0.1:8081", # Change port number if your vue app (phone simulator) is running on a different port
+    ]
+CORS_ALLOWED_METHODS = [
+    "GET",
+    "POST",
+    "OPTIONS",
+]
+CORS_ALLOWED_HEADERS = [
+    'content-type',
+    'authorization',
+]
+CORS_ALLOW_CREDENTIALS = True

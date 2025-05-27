@@ -8,7 +8,7 @@ class PatientAdmin(admin.ModelAdmin):
 
 @admin.register(Appointment)
 class AppointmentAdmin(admin.ModelAdmin):
-    list_display = ('patient', 'appointment_type', 'clinic_location', 'appointment_date')
+    list_display = ('patient', 'appointment_type', 'clinic_location', 'appointment_date', 'status')
 
 
 @admin.register(ClinicAvailability)

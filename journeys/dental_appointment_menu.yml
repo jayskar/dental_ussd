@@ -13,12 +13,22 @@ router_1:
   default_next_screen: authenticated_menu
   router_options:
     - expression: "{{ patient == None }}"
-      next_screen: enter_name
+      next_screen: non_authenticated_menu
 
-# Registration for Non Authenticated
+# Non Authenticated Menu
+non_authenticated_menu:
+  type: menu_screen
+  text: |
+    Welcome! No Profile found.
+  options:
+    - text: Register (Enter Name)
+      next_screen: enter_name
+    - text: Exit
+      next_screen: end
+      
 enter_name:
   type: input_screen
-  text: Enter name
+  text: Enter Full Name
   input_identifier: patient_name
   next_screen: register_user
 
@@ -45,26 +55,26 @@ authenticated_menu:
     Welcome {{patient.name}}.
   options:
     - text: Check Appointments
-      next_screen: check_appointments
+      next_screen: check_all_appointments
     - text: Book New Appointment
       next_screen: book_appointment
     - text: Cancel Appointment
-      next_screen: cancel_appointment
+      next_screen: cancel_an_appointment
     - text: Exit
       next_screen: end
 
 # Check Appointment
-check_appointments:
+check_all_appointments:
   type: function_screen
-  function: dental_ussd.utils.check_appointments
-  session_key: scheduled_appointments
-  next_screen: check_appointment_response
+  function: dental_ussd.utils.check_all_appointments
+  session_key: all_appointments
+  next_screen: check_all_appointment_response
 
-check_appointment_response:
+check_all_appointment_response:
   type: router_screen
-  default_next_screen: get_appointments
+  default_next_screen: show_appointments
   router_options:
-    - expression: "{{ appointments == None }}"
+    - expression: "{{ all_appointments == None }}"
       next_screen: no_appointments
 
 no_appointments:
@@ -79,7 +89,7 @@ no_appointments:
 
 get_appointments:
   type: function_screen
-  function: dental_ussd.utils.get_appointments
+  function: dental_ussd.utils.get_all_appointments
   session_key: appointment_list
   next_screen: show_appointments
 
@@ -90,13 +100,24 @@ show_appointments:
   items:
     text: "{{value}}"
     value: "{{key}}"
-    with_dict: "{{ appointment_list }}"
+    with_dict: "{{ all_appointments }}"
     session_key: appointment
-    next_screen: cancel_appointment_confirmation
+    next_screen: fetch_selected_appointment
   options:
     - text: Back
       input_value: "0"
       next_screen: authenticated_menu
+
+fetch_selected_appointment:
+  type: function_screen
+  function: dental_ussd.utils.fetch_selected_appointment
+  session_key: selected_appointment
+  next_screen: display_selected_appointment
+
+display_selected_appointment:
+  type: quit_screen
+  text: |
+    You selected appointment {{ selected_appointment }}
 
 # Book Appointment
 book_appointment:
@@ -119,7 +140,7 @@ book_appointment:
 
 fetch_available_slots:
   type: function_screen
-  function: dental_ussd.utils.fetch_appointment_slot
+  function: dental_ussd.utils.fetch_available_appointment_slot
   session_key: appointment_slots
   next_screen: check_book_appointment_response
 
@@ -164,19 +185,63 @@ function_book_appointment:
   next_screen: book_cleaning_slot
 
 
+# Cancel Appointment
+cancel_an_appointment:
+  type: function_screen
+  function: dental_ussd.utils.get_scheduled_appointments
+  session_key: appointment_list
+  next_screen: check_appointment_response
 
-router_2:
+check_appointment_response:
   type: router_screen
-  default_next_screen: enter_age
+  default_next_screen: display_scheduled_appointments
   router_options:
-    - expression: "{{ is_registered == None }}"
-      next_screen: end
+    - condition: "{{ appointment_list == None }}"
+      next_screen: no_appointments
 
-enter_age:
-  type: input_screen
-  text: Enter your age
-  input_identifier: age
-  next_screen: show_details
+display_scheduled_appointments:
+  type: menu_screen
+  text: |
+    My Scheduled Appointments:
+  items:
+    text: "{{value}}"
+    value: "{{key}}"
+    with_dict: "{{ appointment_list }}"
+    session_key: selected_appointment
+    next_screen: save_scheduled_appointment_slot_key
+  options:
+    - text: Back
+      input_value: "0"
+      next_screen: authenticated_menu
+
+save_scheduled_appointment_slot_key:
+  type: function_screen
+  function: dental_ussd.utils.save_scheduled_appointment_slot_key
+  session_key: confirm_appointment_slot
+  next_screen: confirm_cancel_appointment
+
+fetch_scheduled_appointment:
+  type: function_screen
+  function: dental_ussd.utils.fetch_selected_appointment
+  session_key: selected_appointment
+  next_screen: display_cancel_appointment
+
+confirm_cancel_appointment:
+  type: menu_screen
+  text: |
+    Cancel {{confirm_appointment_slot.appointment_type}}: {{confirm_appointment_slot.clinic_location}} at {{confirm_appointment_slot.appointment_date|strftime_filter}}.
+  options:
+    - text: Cancel Appointment
+      input_value: "1"
+      next_screen: cancel_appointment
+    - text: Back
+      input_value: "0"
+      next_screen: display_scheduled_appointments
+
+cancel_appointment:
+  type: function_screen
+  function: dental_ussd.utils.cancel_appointment
+  next_screen: appointment_cancelled
 
 # Quit/End screens
 book_cleaning_slot:
@@ -184,20 +249,16 @@ book_cleaning_slot:
   text: |
     Appointment Confirmed! You'll get an SMS reminder.
 
-show_details:
-  type: quit_screen
-  text: You have entered name as {{name}}!
-
-no_available_appointment:
-  type: quit_screen
-  text: |
-    No available slots at the moment. Please try again later!
-
 no_available_book_appointment:
   type: quit_screen
   text: |
     No available slots at the moment. Please try again later!
-
+    
+appointment_cancelled:
+  type: quit_screen
+  text: |
+    Your appointment has been cancelled successfully.
+    
 end:
   type: quit_screen
   text: Thank you for using our service. Goodbye!
