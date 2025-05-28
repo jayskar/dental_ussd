@@ -151,6 +151,15 @@ check_book_appointment_response:
     - expression: "{{ appointment_slots == None }}"
       next_screen: no_available_book_appointment
 
+no_available_book_appointment:
+  type: menu_screen
+  text: |
+    No available slots at the moment.
+  options:
+    - text: Back
+      input_value: "0"
+      next_screen: book_appointment
+
 show_available_slots:
   type: menu_screen
   text: |
@@ -249,11 +258,6 @@ book_cleaning_slot:
   type: quit_screen
   text: |
     Appointment Confirmed! You'll get an SMS reminder.
-
-no_available_book_appointment:
-  type: quit_screen
-  text: |
-    No available slots at the moment. Please try again later!
     
 appointment_cancelled:
   type: quit_screen
