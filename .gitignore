@@ -19,3 +19,4 @@ __pycache__/
 session_data/
 session_store/
 db.sqlite3
+staticfiles/

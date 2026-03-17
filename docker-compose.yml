@@ -1,0 +1,45 @@
+services:
+  # ---------------------------------------------------------------------------
+  # Redis — session store and cache backend
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Django web application served by gunicorn
+  # ---------------------------------------------------------------------------
+  web:
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      # Override Redis URL to point at the compose redis service
+      REDIS_URL: redis://redis:6379/0
+      # Store the SQLite database on the persistent volume
+      DB_DIR: /app/data
+    volumes:
+      # Persist SQLite database across container restarts
+      - db_data:/app/data
+      # Persist collected static files (useful when serving via nginx)
+      - static_files:/app/staticfiles
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  redis_data:
+  db_data:
+  static_files:
