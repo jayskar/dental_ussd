@@ -1,0 +1,27 @@
+graph TD
+    MobilePhone["📱 Mobile Phone\n(dials *XXX#)"]
+    TelcoNetwork["📡 Telco Network\n(USSD protocol)"]
+    USSDGateway["🌐 USSD Gateway\n(Africa's Talking / Comviva)"]
+    DjangoAPI["⚙️ DentalAppUssdGateway\n(DRF APIView, csrf_exempt, AllowAny)\nPOST /dental_ussd/dental_ussd_gw/"]
+    Validation["🔒 Input Validation\n(_validate_request)"]
+    USSDEngine["🔄 ussd_airflow_engine\n(UssdEngine.ussd_dispatcher)"]
+    YAMLJourney["📄 dental_appointment_menu.yml\n(YAML screen definitions)"]
+    UtilsFunctions["🐍 dental_ussd/utils.py\n(business logic functions)"]
+    Redis["🗄️ Redis\n(session store + cache)"]
+    Database["💾 SQLite / PostgreSQL\n(Patient, Appointment,\nClinicAvailability)"]
+    Response["📤 JSON Response\n{status, MSG, MSGTYPE: CON|END}"]
+
+    MobilePhone -->|USSD dial| TelcoNetwork
+    TelcoNetwork -->|HTTP POST| USSDGateway
+    USSDGateway -->|POST JSON| DjangoAPI
+    DjangoAPI --> Validation
+    Validation --> USSDEngine
+    USSDEngine -->|load screen| YAMLJourney
+    YAMLJourney -->|call function| UtilsFunctions
+    USSDEngine -->|read/write session| Redis
+    UtilsFunctions -->|ORM queries| Database
+    USSDEngine -->|response| DjangoAPI
+    DjangoAPI --> Response
+    Response -->|HTTP response| USSDGateway
+    USSDGateway -->|USSD| TelcoNetwork
+    TelcoNetwork -->|display| MobilePhone

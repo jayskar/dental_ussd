@@ -1,0 +1,32 @@
+flowchart TD
+    A["📥 Receive POST request"] --> B["Parse MSG field\n(split by *, take last element)"]
+    B --> C["Build CustomUssdRequest\n(phone_number, session_id, ussd_input)"]
+    C --> D["UssdEngine.ussd_dispatcher()"]
+    D --> E["Load session from Redis"]
+    E --> F["Read current screen from session\nor use initial_screen"]
+    F --> G{Check screen type}
+
+    G -->|function_screen| H["Call Python function\nfrom utils.py\n(ussd_request)"]
+    H --> I["Store return value in\nsession[session_key]"]
+    I --> J["Move to next_screen"]
+    J --> F
+
+    G -->|router_screen| K["Evaluate Jinja2 expressions\nagainst session data"]
+    K --> L{First matching\nexpression?}
+    L -->|match found| M["Navigate to\nmatching next_screen"]
+    L -->|no match| N["Navigate to\ndefault_next_screen"]
+    M --> F
+    N --> F
+
+    G -->|menu_screen| O["Render text with\nJinja2 session data"]
+    O --> P["Build numbered options\n(static + dynamic with_dict)"]
+    P --> Q["Store selected value\nin session[session_key]"]
+    Q --> R["Return CON response\n(session continues)"]
+
+    G -->|input_screen| S["Display prompt text"]
+    S --> T["Store raw input\nin session[input_identifier]"]
+    T --> U["Move to next_screen"]
+    U --> F
+
+    G -->|quit_screen| V["Render final message"]
+    V --> W["Return END response\n(session terminated)"]

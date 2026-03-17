@@ -1,0 +1,30 @@
+erDiagram
+    Patient {
+        BigAutoField id PK
+        CharField mobile_number "max_length=15, unique, regex E164"
+        CharField name "max_length=100"
+        DateTimeField created_at "auto_now_add"
+        DateTimeField updated_at "auto_now"
+    }
+
+    Appointment {
+        BigAutoField id PK
+        ForeignKey patient_id FK
+        CharField appointment_type "Checkup|Cleaning|Filling|Extraction"
+        CharField clinic_location "max_length=100"
+        DateTimeField appointment_date
+        CharField status "scheduled|done|cancelled, default=scheduled"
+        DateTimeField created_at "auto_now_add"
+        DateTimeField updated_at "auto_now"
+    }
+
+    ClinicAvailability {
+        BigAutoField id PK
+        CharField clinic_location "max_length=100"
+        CharField appointment_type "Checkup|Cleaning|Filling|Extraction"
+        IntegerField available_slots "min=0, DB constraint"
+        DateTimeField appointment_date
+        DateTimeField updated_at "auto_now"
+    }
+
+    Patient ||--o{ Appointment : "has"
