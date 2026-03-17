@@ -17,3 +17,5 @@ __pycache__/
 .envrc
 *.envrc
 session_data/
+session_store/
+db.sqlite3

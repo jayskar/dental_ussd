@@ -6,7 +6,7 @@ from django.db import models
 from django.core.validators import MinValueValidator
 
 class Patient(models.Model):
-    mobile_number = models.CharField(max_length=11, null=False, unique=True)
+    mobile_number = models.CharField(max_length=15, null=False, unique=True)
     name = models.CharField(max_length=100, null=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -60,7 +60,7 @@ class ClinicAvailability(models.Model):
     class Meta:
         constraints = [
             models.CheckConstraint(
-                check=models.Q(available_slots__gte=0),
+                condition=models.Q(available_slots__gte=0),
                 name='available_slots_non_negative')
         ]
 
