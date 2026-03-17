@@ -132,6 +132,9 @@ def book_appointment(ussd_request):
 
     try:
         patient = get_or_none(Patient, mobile_number=patient)
+        if patient is None:
+            logger.error("No patient found for phone number", phone_number=ussd_request.session.get('phone_number'))
+            return None
         clinic_slot = ClinicAvailability.objects.get(pk=appointment)
         obj_appointment = Appointment.objects.create(
             patient=patient,
@@ -217,7 +220,7 @@ def check_all_appointments(ussd_request) -> dict | None:
         appointments_dict = {}
         for appointment in appointment_list:
             formatted_date = appointment.appointment_date.strftime('%d/%m/%Y')
-            appointments_dict[appointment.pk] = f"{appointment.appointment_type} ({appointment.status})"
+            appointments_dict[appointment.pk] = f"{appointment.appointment_type} on {formatted_date} ({appointment.status})"
         
         logger.info(f"Retrieved {len(appointments_dict)} appointments for {phone_number}")
         return appointments_dict
@@ -243,7 +246,7 @@ def get_scheduled_appointments(ussd_request):
     for i in appointment_list:
         logger.debug("Processing appointment", appointment=str(i))
         formatted_date = i.appointment_date.strftime('%d/%m/%Y')
-        _d[i.pk] = f"{i.appointment_type} ({i.status})"
+        _d[i.pk] = f"{i.appointment_type} on {formatted_date}"
     
     return _d
 
@@ -284,17 +287,30 @@ def fetch_selected_appointment(ussd_request):
 
 def cancel_appointment(ussd_request):
     selected_appointment = ussd_request.session.get('selected_appointment')
+    phone_number = ussd_request.session.get('phone_number')
     logger.info("Cancelling appointment", selected_appointment=selected_appointment)
     if not selected_appointment:
         logger.error("No selected_appointment found in session")
         return None
+    if not phone_number:
+        logger.error("No phone_number found in session")
+        return None
     try:
-        appointment = Appointment.objects.get(pk=selected_appointment)
+        # Ownership check: only allow cancellation of appointments belonging to this patient
+        appointment = Appointment.objects.get(
+            pk=selected_appointment,
+            patient__mobile_number=phone_number,
+            status='scheduled'
+        )
         appointment.status = 'cancelled'
         appointment.save()
         logger.info("Appointment cancelled successfully", pk=selected_appointment)
     except Appointment.DoesNotExist:
-        logger.error("Appointment not found for cancellation", pk=selected_appointment)
+        logger.error(
+            "Appointment not found or not owned by user",
+            pk=selected_appointment,
+            phone_number=phone_number
+        )
     except Exception as e:
         logger.error("Error cancelling appointment", pk=selected_appointment, error=str(e))
     return None

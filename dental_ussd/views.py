@@ -1,6 +1,7 @@
 # We will define our USSD View here
 # This will be the main entry point for our USSD application
 import os
+import re
 import yaml
 
 from django.conf import settings
@@ -11,7 +12,13 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.throttling import AnonRateThrottle
 from ussd.core import UssdEngine, UssdRequest
+
+# Phone number validation pattern: optional + prefix, 9-15 digits
+PHONE_NUMBER_RE = re.compile(r'^\+?\d{9,15}$')
+# Maximum length for MSG input to prevent overly large payloads
+MAX_MSG_LENGTH = 200
 
 class CustomUssdRequest(UssdRequest):
     """
@@ -50,6 +57,7 @@ class DentalAppUssdGateway(APIView):
     """
     permission_classes = [AllowAny]  # Allow any user to access this API
     authentication_classes = [TokenAuthentication]  # Use token authentication
+    throttle_classes = [AnonRateThrottle]  # Rate limiting for unauthenticated requests
 
     def add_cors_headers(self, response, request):
         """
@@ -89,6 +97,43 @@ class DentalAppUssdGateway(APIView):
         self.add_cors_headers(response, request)
         return response
 
+    def _validate_request(self, data):
+        """
+        Validate and sanitise the incoming request payload.
+        Returns a tuple of (errors: list[str], sanitised: dict | None).
+        """
+        required_fields = ['sessionId', 'phoneNumber', 'MSG', 'serviceCode']
+        errors = []
+        for field in required_fields:
+            if field not in data:
+                errors.append(f"Missing required field: {field}")
+        if errors:
+            return errors, None
+
+        phone = str(data['phoneNumber']).strip()
+        if not PHONE_NUMBER_RE.match(phone):
+            errors.append("Invalid phoneNumber format. Must contain 9-15 digits.")
+
+        msg = str(data['MSG'])
+        if len(msg) > MAX_MSG_LENGTH:
+            errors.append(f"MSG too long (max {MAX_MSG_LENGTH} characters).")
+
+        session_id = str(data['sessionId']).strip()
+        if not session_id:
+            errors.append("sessionId must not be empty.")
+
+        if errors:
+            return errors, None
+
+        return [], {
+            'sessionId': session_id,
+            'phoneNumber': phone,
+            'MSG': msg,
+            'serviceCode': str(data['serviceCode']),
+            'language': str(data.get('language', 'en')),
+            'use_built_in_session_management': bool(data.get('use_built_in_session_management', False)),
+        }
+
     def post(self, request):
         """
         Handle POST requests containing USSD data.
@@ -103,32 +148,51 @@ class DentalAppUssdGateway(APIView):
         Returns:
             Response: The USSD response to be sent back to the user.
         """
+        # Validate and sanitise input
+        errors, sanitised = self._validate_request(request.data)
+        if errors:
+            response = Response({
+                'status': 'error',
+                'MSG': '; '.join(errors),
+                'MSGTYPE': 'END'
+            }, status=400)
+            self.add_cors_headers(response, request)
+            return response
+
         # Parse input text
         try:
-            list_of_inputs = request.data['MSG'].split('*')
+            list_of_inputs = sanitised['MSG'].split('*')
             text = "*" if len(list_of_inputs) >= 2 and list_of_inputs[-1] == "" and list_of_inputs[-2] == "" else list_of_inputs[-1]
         except KeyError as e:
             response = Response({
                 'status': 'error',
                 'MSG': f"Missing required field: {e}",
                 'MSGTYPE': 'END'
-            })
+            }, status=400)
+            self.add_cors_headers(response, request)
+            return response
+        except AttributeError as e:
+            response = Response({
+                'status': 'error',
+                'MSG': f"Invalid field value: {e}",
+                'MSGTYPE': 'END'
+            }, status=400)
             self.add_cors_headers(response, request)
             return response
 
         # Create CustomUssdRequest
-        session_id = request.data['sessionId']
-        if request.data.get('use_built_in_session_management', False):
+        session_id = sanitised['sessionId']
+        if sanitised['use_built_in_session_management']:
             session_id = None
 
         ussd_request = CustomUssdRequest(
-            phone_number=request.data['phoneNumber'].strip('+'),
+            phone_number=sanitised['phoneNumber'].strip('+'),
             session_id=session_id,
             ussd_input=text,
-            service_code = request.data['serviceCode'],
-            language = request.data.get('language', 'en'),
-            use_built_in_session_management=request.data.get('use_built_in_session_management', False),
-            journey_name = "simple_patient_journey"
+            service_code=sanitised['serviceCode'],
+            language=sanitised['language'],
+            use_built_in_session_management=sanitised['use_built_in_session_management'],
+            journey_name="simple_patient_journey"
         )
 
         # Process the USSD request using the USSD engine

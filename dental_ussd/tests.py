@@ -2,7 +2,9 @@ from django.test import TestCase
 from unittest.mock import MagicMock, patch
 from dental_ussd.models import Patient, Appointment, ClinicAvailability
 from dental_ussd import utils
+from dental_ussd.views import DentalAppUssdGateway
 import datetime
+import re
 
 
 def make_ussd_request(session_data=None):
@@ -135,6 +137,10 @@ class CancelAppointmentTest(TestCase):
             mobile_number='+67570001111',
             name='Test Patient'
         )
+        self.other_patient = Patient.objects.create(
+            mobile_number='+67570002222',
+            name='Other Patient'
+        )
         self.appointment = Appointment.objects.create(
             patient=self.patient,
             appointment_type='Checkup',
@@ -144,14 +150,20 @@ class CancelAppointmentTest(TestCase):
         )
 
     def test_happy_path_cancels_appointment(self):
-        req = make_ussd_request({'selected_appointment': self.appointment.pk})
+        req = make_ussd_request({
+            'selected_appointment': self.appointment.pk,
+            'phone_number': '+67570001111',
+        })
         result = utils.cancel_appointment(req)
         self.assertIsNone(result)
         self.appointment.refresh_from_db()
         self.assertEqual(self.appointment.status, 'cancelled')
 
     def test_invalid_appointment_pk_returns_none(self):
-        req = make_ussd_request({'selected_appointment': 99999})
+        req = make_ussd_request({
+            'selected_appointment': 99999,
+            'phone_number': '+67570001111',
+        })
         result = utils.cancel_appointment(req)
         self.assertIsNone(result)
 
@@ -159,4 +171,118 @@ class CancelAppointmentTest(TestCase):
         req = make_ussd_request({})
         result = utils.cancel_appointment(req)
         self.assertIsNone(result)
+
+    def test_cannot_cancel_other_users_appointment(self):
+        """A user cannot cancel an appointment that belongs to a different patient."""
+        req = make_ussd_request({
+            'selected_appointment': self.appointment.pk,
+            'phone_number': '+67570002222',  # different patient
+        })
+        result = utils.cancel_appointment(req)
+        self.assertIsNone(result)
+        self.appointment.refresh_from_db()
+        # Appointment must still be 'scheduled' — not cancelled
+        self.assertEqual(self.appointment.status, 'scheduled')
+
+    def test_missing_phone_number_returns_none(self):
+        req = make_ussd_request({'selected_appointment': self.appointment.pk})
+        result = utils.cancel_appointment(req)
+        self.assertIsNone(result)
+        self.appointment.refresh_from_db()
+        self.assertEqual(self.appointment.status, 'scheduled')
+
+
+class PhoneNumberValidatorTest(TestCase):
+    """Tests for the phone number regex validator on the Patient model."""
+
+    def test_valid_phone_number_with_plus(self):
+        from django.core.exceptions import ValidationError
+        from dental_ussd.models import phone_validator
+        # Should not raise
+        phone_validator('+67570001111')
+        phone_validator('+1234567890')
+
+    def test_valid_phone_number_without_plus(self):
+        from dental_ussd.models import phone_validator
+        phone_validator('67570001111')
+
+    def test_invalid_phone_number_too_short(self):
+        from django.core.exceptions import ValidationError
+        from dental_ussd.models import phone_validator
+        with self.assertRaises(ValidationError):
+            phone_validator('123')
+
+    def test_invalid_phone_number_with_letters(self):
+        from django.core.exceptions import ValidationError
+        from dental_ussd.models import phone_validator
+        with self.assertRaises(ValidationError):
+            phone_validator('abc123456789')
+
+
+class InputValidationViewTest(TestCase):
+    """Tests for the _validate_request method in DentalAppUssdGateway."""
+
+    def setUp(self):
+        self.view = DentalAppUssdGateway()
+
+    def test_valid_payload_passes(self):
+        errors, sanitised = self.view._validate_request({
+            'sessionId': 'sess-001',
+            'phoneNumber': '+67570001111',
+            'MSG': '*123#',
+            'serviceCode': '*123#',
+        })
+        self.assertEqual(errors, [])
+        self.assertIsNotNone(sanitised)
+
+    def test_missing_required_field_returns_errors(self):
+        errors, sanitised = self.view._validate_request({
+            'sessionId': 'sess-001',
+            'phoneNumber': '+67570001111',
+            # MSG missing
+            'serviceCode': '*123#',
+        })
+        self.assertTrue(len(errors) > 0)
+        self.assertIsNone(sanitised)
+
+    def test_invalid_phone_number_returns_error(self):
+        errors, sanitised = self.view._validate_request({
+            'sessionId': 'sess-001',
+            'phoneNumber': 'not-a-phone',
+            'MSG': '*123#',
+            'serviceCode': '*123#',
+        })
+        self.assertTrue(any('phoneNumber' in e for e in errors))
+        self.assertIsNone(sanitised)
+
+    def test_msg_too_long_returns_error(self):
+        errors, sanitised = self.view._validate_request({
+            'sessionId': 'sess-001',
+            'phoneNumber': '+67570001111',
+            'MSG': 'x' * 201,
+            'serviceCode': '*123#',
+        })
+        self.assertTrue(any('MSG' in e for e in errors))
+        self.assertIsNone(sanitised)
+
+    def test_empty_session_id_returns_error(self):
+        errors, sanitised = self.view._validate_request({
+            'sessionId': '',
+            'phoneNumber': '+67570001111',
+            'MSG': '*123#',
+            'serviceCode': '*123#',
+        })
+        self.assertTrue(any('sessionId' in e for e in errors))
+        self.assertIsNone(sanitised)
+
+    def test_phone_number_stripped_of_plus(self):
+        errors, sanitised = self.view._validate_request({
+            'sessionId': 'sess-001',
+            'phoneNumber': '+67570001111',
+            'MSG': '*123#',
+            'serviceCode': '*123#',
+        })
+        self.assertEqual(errors, [])
+        # phoneNumber should be preserved as-is in sanitised data
+        self.assertEqual(sanitised['phoneNumber'], '+67570001111')
 
