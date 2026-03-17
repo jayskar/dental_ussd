@@ -15,26 +15,24 @@ def get_or_none(model, **kwargs):
 def authenticate_user(ussd_request):
     resp = None
     phone_number = ussd_request.session.get('phone_number')
-    print(phone_number)
+    logger.info("Authenticating user", phone_number=phone_number)
     patient_reg = get_or_none(Patient, mobile_number=phone_number)
-    print(patient_reg)
+    logger.info("Authentication result", patient=patient_reg)
     if patient_reg is not None:
         resp = patient_reg
-    print(f"[*] resp={resp}")
+    logger.info("authenticate_user response", resp=resp)
     return resp
 
 def register_user(ussd_request):
     resp = None
     patient_name = ussd_request.session.get('patient_name')
     phone_number = ussd_request.session.get('phone_number')
-    patient = Patient.objects.get_or_create(
+    patient, created = Patient.objects.get_or_create(
         mobile_number=phone_number,
-        name=patient_name)
-    if patient is not None:
-        resp = patient
-    else:
-        resp = "Patient already registered"
-    print(f"[*] resp={resp}")
+        defaults={'name': patient_name}
+    )
+    resp = patient
+    logger.info("register_user response", resp=resp, created=created)
     return resp
 
 def fetch_available_appointment_slot(ussd_request) -> dict[int, str] | None:
@@ -128,6 +126,7 @@ def save_appointment_slot(ussd_request):
 
 def book_appointment(ussd_request):
     resp_menu = None
+    # appointment_slot holds the raw PK of the ClinicAvailability record selected by the user
     appointment = ussd_request.session.get('appointment_slot')
     patient=ussd_request.session.get('phone_number')
 
@@ -146,42 +145,36 @@ def book_appointment(ussd_request):
             clinic_slot.save()
         return obj_appointment
     except ClinicAvailability.DoesNotExist:
-        print(f"No ClinicAvailability found for pk: {appointment}")
-        # resp_menu = "No ClinicAvailability found"
+        logger.error("No ClinicAvailability found for pk", pk=appointment)
         return None
     except Exception as e:
-        print(f"Error creating appointment: {e}")
-        # resp_menu = "Error creating appointment"
+        logger.error("Error creating appointment", error=str(e))
         return None
 
+# DEPRECATED: book_checkup, book_filling, book_cleaning_slot, and book_cleaning are legacy
+# functions that are no longer referenced in the journey YAML. They are kept here for
+# reference only and should not be called in new code.
 def book_checkup(ussd_request):
     resp_menu = None
-    _d = {}
     try:
         resp_menu = ClinicAvailability.objects.filter(appointment_type='Checkup', available_slots__gt=0)
     except Exception as e:
-        print(f"Error fetching clinic availability: {e}")
-        #resp_menu = "Error fetching clinic availability"
-
-    # for i in clinic_availability:
-    #     print(f"[*] i={i}")
-    #     formatted_date = i.appointment_date.strftime('%Y-%m-%d %I %p')
-    #     _d[i.pk] = f"{i.clinic_location} ({formatted_date})"
+        logger.error("Error fetching clinic availability", error=str(e))
+        return None
     return resp_menu
 
 def book_filling(ussd_request):
     resp_menu = None
-    _d = {}
     try:
         resp_menu = ClinicAvailability.objects.filter(appointment_type='Filling', available_slots__gt=0)
     except Exception as e:
-        print(f"Error fetching clinic availability: {e}")
+        logger.error("Error fetching clinic availability", error=str(e))
 
     return resp_menu
 
 def book_cleaning_slot(ussd_request):
     resp = None
-    print(f"[***] {ussd_request.session.get('cleaning_slot_key')}")
+    logger.debug("book_cleaning_slot called", cleaning_slot_key=ussd_request.session.get('cleaning_slot_key'))
     cleaning_slot = ussd_request.session.get('cleaning_slot')
     phone_number = ussd_request.session.get('phone_number')
     patient = get_or_none(Patient, mobile_number=phone_number)
@@ -196,7 +189,7 @@ def book_cleaning_slot(ussd_request):
             )
             appointment.save()
         except Exception as e:
-            print(f"Error creating appointment: {e}")
+            logger.error("Error creating appointment", error=str(e))
     return resp
 
 def check_all_appointments(ussd_request) -> dict | None:
@@ -244,11 +237,11 @@ def get_scheduled_appointments(ussd_request):
             return None
             
     except Exception as e:
-        print(f"Error fetching clinic availability: {e}")
+        logger.error("Error fetching scheduled appointments", error=str(e))
         return None
 
     for i in appointment_list:
-        print(f"[*] i={i}")
+        logger.debug("Processing appointment", appointment=str(i))
         formatted_date = i.appointment_date.strftime('%d/%m/%Y')
         _d[i.pk] = f"{i.appointment_type} ({i.status})"
     
@@ -291,8 +284,17 @@ def fetch_selected_appointment(ussd_request):
 
 def cancel_appointment(ussd_request):
     selected_appointment = ussd_request.session.get('selected_appointment')
-    print(f"{selected_appointment}")
-    appointment = Appointment.objects.get(pk=selected_appointment)
-    appointment.status='cancelled'
-    appointment.save()
+    logger.info("Cancelling appointment", selected_appointment=selected_appointment)
+    if not selected_appointment:
+        logger.error("No selected_appointment found in session")
+        return None
+    try:
+        appointment = Appointment.objects.get(pk=selected_appointment)
+        appointment.status = 'cancelled'
+        appointment.save()
+        logger.info("Appointment cancelled successfully", pk=selected_appointment)
+    except Appointment.DoesNotExist:
+        logger.error("Appointment not found for cancellation", pk=selected_appointment)
+    except Exception as e:
+        logger.error("Error cancelling appointment", pk=selected_appointment, error=str(e))
     return None

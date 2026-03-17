@@ -87,12 +87,6 @@ no_appointments:
     - text: Exit
       next_screen: end
 
-get_appointments:
-  type: function_screen
-  function: dental_ussd.utils.get_all_appointments
-  session_key: appointment_list
-  next_screen: show_appointments
-
 show_appointments:
   type: menu_screen
   text: |
@@ -205,7 +199,7 @@ check_appointment_response:
   type: router_screen
   default_next_screen: display_scheduled_appointments
   router_options:
-    - condition: "{{ appointment_list == None }}"
+    - expression: "{{ appointment_list == None }}"
       next_screen: no_appointments
 
 display_scheduled_appointments:
@@ -228,12 +222,6 @@ save_scheduled_appointment_slot_key:
   function: dental_ussd.utils.save_scheduled_appointment_slot_key
   session_key: confirm_appointment_slot
   next_screen: confirm_cancel_appointment
-
-fetch_scheduled_appointment:
-  type: function_screen
-  function: dental_ussd.utils.fetch_selected_appointment
-  session_key: selected_appointment
-  next_screen: display_cancel_appointment
 
 confirm_cancel_appointment:
   type: menu_screen
