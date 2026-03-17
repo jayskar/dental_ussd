@@ -39,6 +39,26 @@ services:
       redis:
         condition: service_healthy
 
+  # ---------------------------------------------------------------------------
+  # USSD Simulator — Vue.js SPA (jayskar/ussd-simulator@mydev)
+  # The browser talks directly to the web service on localhost:8000, so no
+  # special network wiring is needed inside the compose network.
+  # ---------------------------------------------------------------------------
+  simulator:
+    build:
+      context: .
+      dockerfile: Dockerfile.simulator
+      args:
+        # VUE_APP_AUTH_TOKEN is baked into the JS bundle at build time.
+        # Set this to a valid DRF auth token created in the web container:
+        #   docker compose exec web python manage.py drf_create_token <username>
+        VUE_APP_AUTH_TOKEN: "${VUE_APP_AUTH_TOKEN:-}"
+    restart: unless-stopped
+    ports:
+      - "${SIMULATOR_PORT:-8081}:8081"
+    depends_on:
+      - web
+
 volumes:
   redis_data:
   db_data:
