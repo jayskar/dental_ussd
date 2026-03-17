@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from pathlib import Path
 from decouple import config, Csv
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,10 +22,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production')
+_DEFAULT_SECRET_KEY = 'django-insecure-change-me-in-production'
+SECRET_KEY = config('SECRET_KEY', default=_DEFAULT_SECRET_KEY)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
+
+# Prevent accidental production deployment with the insecure default secret key
+if not DEBUG and SECRET_KEY == _DEFAULT_SECRET_KEY:
+    raise ImproperlyConfigured(
+        "SECRET_KEY must be set to a secure value when DEBUG is False. "
+        "Set the SECRET_KEY environment variable before deploying to production."
+    )
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
@@ -138,6 +147,13 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
         ),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    # Rate limiting: 60 requests per minute for anonymous (USSD gateway) requests
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": config('ANON_THROTTLE_RATE', default='60/minute'),
+    },
 }
 
 # Redis settings
@@ -157,10 +173,11 @@ CACHES = {
 DEFAULT_USSD_SCREEN_JOURNEY = os.path.join(BASE_DIR, 'journeys', 'dental_appointment_menu.yml')
 
 # Added for Vue Simulatior
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8081", # Change port number if your vue app (phone simulator) is running on a different port
-    "http://127.0.0.1:8081", # Change port number if your vue app (phone simulator) is running on a different port
-    ]
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS',
+    default='http://localhost:8081,http://127.0.0.1:8081',
+    cast=Csv()
+)
 CORS_ALLOWED_METHODS = [
     "GET",
     "POST",

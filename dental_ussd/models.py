@@ -3,10 +3,27 @@
 # They define the structure of your database and how data is stored.
 # In this case, we will create a simple model for a dental appointment.
 from django.db import models
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
+
+phone_validator = RegexValidator(
+    regex=r'^\+?\d{9,15}$',
+    message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."
+)
+
+APPOINTMENT_TYPE_CHOICES = [
+    ('Checkup', 'Checkup'),
+    ('Cleaning', 'Cleaning'),
+    ('Filling', 'Filling'),
+    ('Extraction', 'Extraction'),
+]
 
 class Patient(models.Model):
-    mobile_number = models.CharField(max_length=15, null=False, unique=True)
+    mobile_number = models.CharField(
+        max_length=15,
+        null=False,
+        unique=True,
+        validators=[phone_validator]
+    )
     name = models.CharField(max_length=100, null=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -17,7 +34,11 @@ class Patient(models.Model):
 
 class Appointment(models.Model):
     patient = models.ForeignKey(Patient, on_delete=models.CASCADE, null=False)
-    appointment_type = models.CharField(max_length=50, null=False)
+    appointment_type = models.CharField(
+        max_length=50,
+        null=False,
+        choices=APPOINTMENT_TYPE_CHOICES
+    )
     clinic_location = models.CharField(max_length=100, null=False)
     appointment_date = models.DateTimeField(null=False)
     status = models.CharField(
@@ -46,12 +67,7 @@ class ClinicAvailability(models.Model):
     appointment_type = models.CharField(
         max_length=20,
         default='checkup',
-        choices=[
-            ('Checkup', 'Checkup'),
-            ('Cleaning', 'Cleaning'),
-            ('Filling', 'Filling'),
-            ('Extraction', 'Extraction')
-        ]
+        choices=APPOINTMENT_TYPE_CHOICES
     )
     available_slots = models.IntegerField(null=False, validators=[MinValueValidator(0)])
     appointment_date = models.DateTimeField(null=False)
