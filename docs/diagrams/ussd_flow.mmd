@@ -1,0 +1,40 @@
+sequenceDiagram
+    participant User as 📱 User
+    participant Telco as 📡 Telco
+    participant Gateway as 🌐 USSD Gateway
+    participant Django as ⚙️ Django
+    participant Engine as 🔄 UssdEngine
+    participant YAML as 📄 YAML Journey
+    participant Utils as 🐍 utils.py
+    participant Redis as 🗄️ Redis
+    participant DB as 💾 Database
+
+    User->>Telco: Dials *123#
+    Telco->>Gateway: USSD session start
+    Gateway->>Django: POST /dental_ussd/dental_ussd_gw/<br/>{sessionId, phoneNumber, MSG, serviceCode}
+    Django->>Django: _validate_request()<br/>parse MSG, build CustomUssdRequest
+    Django->>Engine: UssdEngine(ussd_request).ussd_dispatcher()
+    Engine->>Redis: load session data
+    Redis-->>Engine: session dict
+    Engine->>YAML: get_screens(initial_screen)
+    YAML-->>Engine: screen definition
+    alt function_screen
+        Engine->>Utils: call utils.function(ussd_request)
+        Utils->>DB: ORM query
+        DB-->>Utils: result
+        Utils-->>Engine: return value
+        Engine->>Redis: session[session_key] = return_value
+    else router_screen
+        Engine->>Engine: evaluate Jinja2 expression<br/>against session data
+        Engine->>YAML: get_screens(next_screen)
+    else menu_screen / input_screen
+        Engine-->>Django: UssdResponse(text, status=True)
+        Django-->>Gateway: {status: success, MSG: "...", MSGTYPE: CON}
+        Gateway-->>Telco: Show menu
+        Telco-->>User: Display on phone
+    else quit_screen
+        Engine-->>Django: UssdResponse(text, status=False)
+        Django-->>Gateway: {status: success, MSG: "...", MSGTYPE: END}
+        Gateway-->>Telco: End session
+        Telco-->>User: Display final message
+    end

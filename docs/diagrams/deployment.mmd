@@ -1,0 +1,28 @@
+graph TD
+    Internet["🌐 Internet\n(USSD Gateway / Browser)"]
+    Nginx["🔀 Nginx\n:80 / :443\n(reverse proxy + SSL)"]
+    DjangoApp["⚙️ Django / Gunicorn\n:8000\n(WSGI app server)"]
+    Redis["🗄️ Redis\n:6379\n(session + cache)"]
+    Database["💾 SQLite Volume\n/app/data/db.sqlite3"]
+    StaticFiles["📁 Static Files Volume\n/app/staticfiles"]
+    Simulator["🖥️ Vue Simulator\n:8081\n⚠️ DEV ONLY"]
+
+    Internet -->|HTTP/HTTPS| Nginx
+    Nginx -->|proxy_pass| DjangoApp
+    DjangoApp -->|cache/session| Redis
+    DjangoApp -->|SQLite ORM| Database
+    DjangoApp -->|static files| StaticFiles
+    Nginx -->|serve static| StaticFiles
+
+    Simulator -->|POST /dental_ussd/dental_ussd_gw/| DjangoApp
+
+    subgraph Docker Compose Network
+        DjangoApp
+        Redis
+        Database
+        StaticFiles
+    end
+
+    subgraph Dev Only
+        Simulator
+    end
