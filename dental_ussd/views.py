@@ -10,7 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.throttling import AnonRateThrottle
 from ussd.core import UssdEngine, UssdRequest
@@ -55,9 +55,9 @@ class DentalAppUssdGateway(APIView):
     API view that serves as the gateway for the Dental App USSD service.
     Handles USSD requests and returns appropriate responses.
     """
-    permission_classes = [AllowAny]  # Allow any user to access this API
+    permission_classes = [IsAuthenticated]  # Require token authentication for all requests
     authentication_classes = [TokenAuthentication]  # Use token authentication
-    throttle_classes = [AnonRateThrottle]  # Rate limiting for unauthenticated requests
+    throttle_classes = [AnonRateThrottle]  # Rate limiting for unauthenticated/preflight requests
 
     def add_cors_headers(self, response, request):
         """

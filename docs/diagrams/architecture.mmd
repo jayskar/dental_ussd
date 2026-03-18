@@ -2,7 +2,7 @@ graph TD
     MobilePhone["📱 Mobile Phone\n(dials *XXX#)"]
     TelcoNetwork["📡 Telco Network\n(USSD protocol)"]
     USSDGateway["🌐 USSD Gateway\n(Africa's Talking / Comviva)"]
-    DjangoAPI["⚙️ DentalAppUssdGateway\n(DRF APIView, csrf_exempt, AllowAny)\nPOST /dental_ussd/dental_ussd_gw/"]
+    DjangoAPI["⚙️ DentalAppUssdGateway\n(DRF APIView, csrf_exempt, IsAuthenticated)\nPOST /dental_ussd/dental_ussd_gw/"]
     Validation["🔒 Input Validation\n(_validate_request)"]
     USSDEngine["🔄 ussd_airflow_engine\n(UssdEngine.ussd_dispatcher)"]
     YAMLJourney["📄 dental_appointment_menu.yml\n(YAML screen definitions)"]
