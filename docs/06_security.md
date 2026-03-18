@@ -16,18 +16,21 @@ The Dental USSD app's security model differs significantly from a typical browse
 
 ## 2. USSD Endpoint Security
 
-### Why `AllowAny` Is Intentional
+### Token Authentication
 
 ```python
 class DentalAppUssdGateway(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
 ```
 
-DRF's `AllowAny` is intentional for the USSD endpoint. The alternative — requiring a DRF `TokenAuthentication` token — would require the USSD gateway to include a `Authorization: Token xxx` header on every request. Most USSD gateways do not support this.
+Every caller must authenticate with a DRF token. A Django user account is created for each gateway or simulator, and a token is generated with `python manage.py drf_create_token <username>`. The caller sends:
 
-The security boundary is:
-1. **Telco network** — only devices that dial the shortcode can initiate requests.
-2. **IP allowlisting** (recommended) — restrict the endpoint to the gateway's IP range.
+```
+Authorization: Token <token>
+```
+
+Requests without a valid token receive `401 Unauthorized`. See [docs/authentication.md](authentication.md) for setup instructions.
 
 ### Why `csrf_exempt` Is Correct
 

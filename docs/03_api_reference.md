@@ -10,7 +10,7 @@
 
 The single USSD gateway endpoint. Receives a POST request from a USSD gateway and returns a USSD response.
 
-**Authentication**: None required (`AllowAny`).  
+**Authentication**: `Authorization: Token <token>` header required (see [docs/authentication.md](authentication.md)).  
 **CSRF**: Exempt.  
 **Rate limit**: 60 requests per minute (anonymous).
 
@@ -23,6 +23,7 @@ The single USSD gateway endpoint. Receives a POST request from a USSD gateway an
 | Header | Value |
 |---|---|
 | `Content-Type` | `application/json` |
+| `Authorization` | `Token <your-drf-token>` |
 
 ### Request Fields
 

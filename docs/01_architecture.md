@@ -19,7 +19,7 @@
 │  USSD Gateway  (e.g. Africa's Talking, Comviva)                     │
 │      │  POST /dental_ussd/dental_ussd_gw/                          │
 │      ▼                                                              │
-│  Django  ──  DentalAppUssdGateway (APIView, csrf_exempt, AllowAny) │
+│  Django  ──  DentalAppUssdGateway (APIView, csrf_exempt, IsAuthenticated) │
 │      │                                                              │
 │      ├──► Input validation & sanitisation (_validate_request)       │
 │      │                                                              │
@@ -82,19 +82,21 @@ Django REST Framework is a toolkit for building Web APIs on top of Django. It pr
 
 `DentalAppUssdGateway` extends `APIView`. When a request arrives, DRF runs the authentication, permission, and throttle checks defined on the view before calling the appropriate HTTP method handler (`post()`, `options()`, etc.).
 
-### Why `AllowAny` Is Correct for USSD Endpoints
+### Token Authentication on the USSD Endpoint
 
 ```python
 class DentalAppUssdGateway(APIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     authentication_classes = [TokenAuthentication]
 ```
 
-USSD gateways (Africa's Talking, Comviva, etc.) are server-to-server HTTP clients. They do **not** carry DRF auth tokens — there is no user session or Bearer header. The phone number in the `phoneNumber` field is the caller's identity, verified by the telco before the request ever reaches Django.
+Every caller — whether a real telco USSD gateway or the local Vue.js simulator — must authenticate with a DRF token. A Django user account is created for each gateway, a token is generated with `python manage.py drf_create_token <username>`, and the gateway is configured to send:
 
-`AllowAny` is the correct permission class here. The global DRF default (`IsAuthenticated`) is intentionally overridden at the view level.
+```
+Authorization: Token <token>
+```
 
-To add network-layer security (rather than token authentication), use IP allowlisting for the gateway's IP range in Nginx or a Django middleware — see [docs/06_security.md](06_security.md).
+See [docs/authentication.md](authentication.md) for a step-by-step guide.
 
 ### Why `csrf_exempt` Is Used
 
@@ -105,7 +107,7 @@ USSD gateways POST to the endpoint without a Django CSRF token in the request he
 
 ### Token Authentication Configuration
 
-`TokenAuthentication` is listed in `authentication_classes` so that the DRF browsable API and `drf-spectacular` schema generation recognise token-based authentication as a supported method. It is effectively bypassed by `AllowAny` at the permission stage — unauthenticated requests are still permitted.
+`TokenAuthentication` is the authentication class used by `DentalAppUssdGateway`. Every request must include an `Authorization: Token <token>` header. Requests without a valid token are rejected with `401 Unauthorized`.
 
 ---
 
